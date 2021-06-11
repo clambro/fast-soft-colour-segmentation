@@ -45,7 +45,7 @@ class FSCSModel:
         layer = self._do_double_conv(pool, bottleneck_filters)
 
         for i in range(config.NUM_DOWNSAMPLE_LAYERS - 1):
-            up_filters = config.BASE_FILTERS * 2 ** (config.NUM_DOWNSAMPLE_LAYERS - i)
+            up_filters = config.BASE_FILTERS * 2 ** (config.NUM_DOWNSAMPLE_LAYERS - i - 1)
             layer = self._do_up_conv(layer, down_layers.pop(-1), up_filters)
 
         output_layer = self._do_final_layer(layer, down_layers.pop(-1))
