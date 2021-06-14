@@ -59,13 +59,13 @@ class FSCSModel:
         pool = layers.MaxPool2D()(layer)
         return layer, pool
 
-    def _do_up_conv(self, up_layer, skip_layer, num_filters):
+    def _do_up_conv(self, up_layer, skip_layer, num_filters, is_final=False):
         up_layer = layers.UpSampling2D()(up_layer)
         layer = layers.Concatenate()([up_layer, skip_layer])
-        return self._do_double_conv(layer, num_filters)
+        return self._do_double_conv(layer, num_filters, is_final)
 
     def _do_final_layer(self, up_layer, skip_layer):
-        up_layer = self._do_up_conv(up_layer, skip_layer, 4 * config.NUM_SEGMENTS)
+        up_layer = self._do_up_conv(up_layer, skip_layer, 4 * config.NUM_SEGMENTS, is_final=True)
 
         def normalize_final_layer(layer):
             alpha = tf.math.softmax(layer[..., :config.NUM_SEGMENTS])
@@ -75,9 +75,12 @@ class FSCSModel:
         return layers.Lambda(normalize_final_layer)(up_layer)
 
     @staticmethod
-    def _do_double_conv(layer, num_filters):
+    def _do_double_conv(layer, num_filters, is_final=False):
         layer = layers.Conv2D(num_filters, 3, padding='same')(layer)
         layer = layers.LeakyReLU(config.LEAKINESS)(layer)
         layer = layers.Conv2D(num_filters, 3, padding='same')(layer)
-        layer = layers.LeakyReLU(config.LEAKINESS)(layer)
-        return layers.BatchNormalization()(layer)
+        if is_final:
+            return layer
+        else:
+            layer = layers.LeakyReLU(config.LEAKINESS)(layer)
+            return layers.BatchNormalization()(layer)
