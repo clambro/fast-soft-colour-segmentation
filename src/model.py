@@ -1,7 +1,7 @@
 import config
 import tensorflow as tf
 from tensorflow.keras import layers
-from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.models import Model
 
 
 class FSCSModel:
