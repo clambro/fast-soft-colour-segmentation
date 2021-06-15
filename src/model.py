@@ -1,7 +1,7 @@
 import config
 import tensorflow as tf
 from tensorflow.keras import layers
-from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.models import Model
 
 
 class FSCSModel:
@@ -13,12 +13,17 @@ class FSCSModel:
         The tensorflow model for segmentation.
     """
 
-    def __init__(self, model_path=None):
-        """"""
-        if model_path is None:
-            self.model = self._build_model()
-        else:
-            self.model = load_model(model_path)
+    def __init__(self, weight_path=None):
+        """Initialize the FSCS model and optionally load saved weights.
+
+        Parameters
+        ----------
+        weight_path : Optional[str]
+            If given, the model will load its weights from this path. Otherwise they will be randomly generated.
+        """
+        self.model = self._build_model()
+        if weight_path is not None:
+            self.model.load_weights(weight_path)
 
     def train(self, x_train, x_val):
         """"""
@@ -32,9 +37,15 @@ class FSCSModel:
         """"""
         pass
 
-    def save(self, path):
-        """"""
-        pass
+    def save_weights(self, path):
+        """Save the model weights to file.
+
+        Parameters
+        ----------
+        path : str
+            The full path to which the weights will be saved.
+        """
+        self.model.save_weights(path)
 
     def _build_model(self):
         """Build the model
