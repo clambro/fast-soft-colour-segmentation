@@ -5,7 +5,13 @@ from tensorflow.keras.models import Model, load_model
 
 
 class FSCSModel:
-    """"""
+    """The Fast Soft Colour Segmentation model.
+
+    Attributes
+    ----------
+    model : Model
+        The tensorflow model for segmentation.
+    """
 
     def __init__(self, model_path=None):
         """"""
