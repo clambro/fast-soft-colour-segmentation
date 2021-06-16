@@ -2,6 +2,7 @@ import config
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
 
 
 class FSCSModel:
@@ -24,6 +25,7 @@ class FSCSModel:
         self.model = self._build_model()
         if weight_path is not None:
             self.model.load_weights(weight_path)
+        self._compile_model()
 
     def train(self, x_train, x_val):
         """"""
@@ -171,3 +173,20 @@ class FSCSModel:
         else:
             layer = layers.LeakyReLU(config.LEAKINESS)(layer)
             return layers.BatchNormalization()(layer)
+
+    def _compile_model(self):
+        """"""
+        def reconstruction_loss(y_true, y_pred):
+            alpha = y_pred[..., :config.NUM_SEGMENTS]
+            colours = y_pred[..., config.NUM_SEGMENTS:]
+
+            coloured_layers = []
+            for ch in range(config.NUM_SEGMENTS):
+                # Get the average colour over the height and width and multiply by the alpha values.
+                ch_colour = tf.reduce_mean(colours[..., 3*ch:3*ch+3], axis=(1, 2), keepdims=True)
+                coloured_layers.append(ch_colour * alpha[..., ch:ch+1])
+
+            pred_img_batch = tf.reduce_sum(coloured_layers, axis=0)  # Sum the alpha channels.
+            return tf.reduce_mean(tf.abs(y_true - pred_img_batch))
+
+        self.model.compile(loss=reconstruction_loss, optimizer=Adam(config.LEARNING_RATE))

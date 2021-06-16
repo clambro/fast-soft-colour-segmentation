@@ -8,3 +8,6 @@ NUM_SEGMENTS = 6
 
 # Model hyperparameters
 LEAKINESS = 0.3
+
+# Training details
+LEARNING_RATE = 1e-3
