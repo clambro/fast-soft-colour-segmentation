@@ -138,11 +138,11 @@ class FSCSModel:
             The final output layer with config.NUM_SEGMENTS alpha channels followed by the same number of RGB images
             concatenated along the channel axis.
         """
-        up_layer = self._do_up_conv(up_layer, skip_layer, 4 * config.NUM_SEGMENTS, is_final=True)
+        up_layer = self._do_up_conv(up_layer, skip_layer, 4 * config.NUM_REGIONS, is_final=True)
 
         def normalize_final_layer(layer):
-            alpha = tf.math.softmax(layer[..., :config.NUM_SEGMENTS])
-            colours = tf.math.sigmoid(layer[..., config.NUM_SEGMENTS:])
+            alpha = tf.math.softmax(layer[..., :config.NUM_REGIONS])
+            colours = tf.math.sigmoid(layer[..., config.NUM_REGIONS:])
             return tf.concat([alpha, colours], axis=-1)
 
         return layers.Lambda(normalize_final_layer)(up_layer)
@@ -177,26 +177,25 @@ class FSCSModel:
     def _compile_model(self):
         """Compiles the model with the appropriate losses."""
         def reconstruction_loss(y_true, y_pred):
-            alpha = y_pred[..., :config.NUM_SEGMENTS]
-            colours = y_pred[..., config.NUM_SEGMENTS:]
+            alpha = y_pred[..., :config.NUM_REGIONS]
+            colours = y_pred[..., config.NUM_REGIONS:]
 
             # Each channel's colour is the average over the height and width of the network's output.
             colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
-            coloured_layers = [colours[..., 3*ch:3*ch+3] * alpha[..., ch:ch+1] for ch in range(config.NUM_SEGMENTS)]
+            coloured_layers = [colours[..., 3*ch:3*ch+3] * alpha[..., ch:ch+1] for ch in range(config.NUM_REGIONS)]
 
             pred_img_batch = tf.reduce_sum(coloured_layers, axis=0)  # Sum the alpha channels.
             return tf.reduce_mean(tf.abs(y_true - pred_img_batch))
 
         def region_loss(y_true, y_pred):
-            alpha = y_pred[..., :config.NUM_SEGMENTS]
-            colours = y_pred[..., config.NUM_SEGMENTS:]
+            alpha = y_pred[..., :config.NUM_REGIONS]
+            colours = y_pred[..., config.NUM_REGIONS:]
 
-            # Each channel's colour is the average over the height and width of the network's output.
             colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
             loss = 0
-            for ch in range(config.NUM_SEGMENTS):
+            for ch in range(config.NUM_REGIONS):
                 loss += tf.reduce_mean((y_true - colours[..., 3*ch:3*ch+3]) ** 2 * alpha[..., ch:ch+1])
-            return loss * config.NUM_SEGMENTS
+            return loss * config.NUM_REGIONS  # Pixels get counted for each region, but
 
         def total_loss(y_true, y_pred):
             return reconstruction_loss(y_true, y_pred) + region_loss(y_true, y_pred)
