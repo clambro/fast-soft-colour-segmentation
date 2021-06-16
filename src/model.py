@@ -175,18 +175,31 @@ class FSCSModel:
             return layers.BatchNormalization()(layer)
 
     def _compile_model(self):
-        """"""
+        """Compiles the model with the appropriate losses."""
         def reconstruction_loss(y_true, y_pred):
             alpha = y_pred[..., :config.NUM_SEGMENTS]
             colours = y_pred[..., config.NUM_SEGMENTS:]
 
-            coloured_layers = []
-            for ch in range(config.NUM_SEGMENTS):
-                # Get the average colour over the height and width and multiply by the alpha values.
-                ch_colour = tf.reduce_mean(colours[..., 3*ch:3*ch+3], axis=(1, 2), keepdims=True)
-                coloured_layers.append(ch_colour * alpha[..., ch:ch+1])
+            # Each channel's colour is the average over the height and width of the network's output.
+            colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
+            coloured_layers = [colours[..., 3*ch:3*ch+3] * alpha[..., ch:ch+1] for ch in range(config.NUM_SEGMENTS)]
 
             pred_img_batch = tf.reduce_sum(coloured_layers, axis=0)  # Sum the alpha channels.
             return tf.reduce_mean(tf.abs(y_true - pred_img_batch))
 
-        self.model.compile(loss=reconstruction_loss, optimizer=Adam(config.LEARNING_RATE))
+        def region_loss(y_true, y_pred):
+            alpha = y_pred[..., :config.NUM_SEGMENTS]
+            colours = y_pred[..., config.NUM_SEGMENTS:]
+
+            # Each channel's colour is the average over the height and width of the network's output.
+            colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
+            loss = 0
+            for ch in range(config.NUM_SEGMENTS):
+                loss += tf.reduce_mean((y_true - colours[..., 3*ch:3*ch+3]) ** 2 * alpha[..., ch:ch+1])
+            return loss * config.NUM_SEGMENTS
+
+        def total_loss(y_true, y_pred):
+            return reconstruction_loss(y_true, y_pred) + region_loss(y_true, y_pred)
+
+        self.model.compile(loss=total_loss, optimizer=Adam(config.LEARNING_RATE),
+                           metrics=[reconstruction_loss, region_loss])
