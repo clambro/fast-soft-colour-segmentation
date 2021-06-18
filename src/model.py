@@ -1,4 +1,6 @@
 import config
+import numpy as np
+from skimage.transform import resize
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
@@ -36,8 +38,29 @@ class FSCSModel:
         pass
 
     def optimize_for_one_image(self, img):
-        """"""
-        pass
+        """Train the model as an optimization problem to segment a single image.
+
+        Parameters
+        ----------
+        img : ndarray
+            The image to segment.
+
+        Returns
+        -------
+        List[ndarray]
+            The image segmented into monochrome alpha channels.
+        """
+        original_shape = np.asarray(img.shape[:2])
+        rounded_shape = (original_shape // 2**config.NUM_DOWNSAMPLE_LAYERS + 1) * 2**config.NUM_DOWNSAMPLE_LAYERS
+        img = resize(img, rounded_shape)
+
+        self.model.fit(img[None, ...], img[None, ...], epochs=config.OPTIMIZATION_EPOCHS, batch_size=1)
+        output = self.model.predict(img[None, ...], batch_size=1)
+
+        alpha = output[0, :, :, :config.NUM_REGIONS]
+        colour = np.mean(output[0, :, :, config.NUM_REGIONS:], axis=(0, 1), keepdims=True)
+        channels = [colour[..., 3*ch:3*ch+3] * alpha[..., ch:ch+1] for ch in range(config.NUM_REGIONS)]
+        return [resize(ch, original_shape) for ch in channels]
 
     def save_weights(self, path):
         """Save the model weights to file.

@@ -8,3 +8,6 @@ LEAKINESS = 0.3
 
 # Training details
 LEARNING_RATE = 1e-3
+
+# Optimization details
+OPTIMIZATION_EPOCHS = 1000
