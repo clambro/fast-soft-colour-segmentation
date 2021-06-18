@@ -51,8 +51,8 @@ class FSCSModel:
             The image segmented into monochrome alpha channels.
         """
         original_shape = np.asarray(img.shape[:2])
-        rounded_shape = (original_shape // 2**config.NUM_DOWNSAMPLE_LAYERS + 1) * 2**config.NUM_DOWNSAMPLE_LAYERS
-        img = resize(img, rounded_shape)
+        rounded_shape = np.ceil(original_shape / 2**config.NUM_DOWNSAMPLE_LAYERS) * 2**config.NUM_DOWNSAMPLE_LAYERS
+        img = resize(img, rounded_shape)  # Rounding is necessary for skip connections in the model.
 
         self.model.fit(img[None, ...], img[None, ...], epochs=config.OPTIMIZATION_EPOCHS, batch_size=1)
         output = self.model.predict(img[None, ...], batch_size=1)

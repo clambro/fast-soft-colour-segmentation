@@ -1,4 +1,5 @@
 import config
+from mock import patch
 from model import FSCSModel
 import numpy as np
 from tempfile import NamedTemporaryFile
@@ -20,6 +21,18 @@ class TestFSCSModel(unittest.TestCase):
             fscs2 = FSCSModel(file.name)
         for w1, w2 in zip(fscs1.model.weights, fscs2.model.weights):
             np.testing.assert_array_almost_equal(w1, w2)
+
+    @patch('tensorflow.keras.Model.fit')
+    def test_optimize_for_one_image(self, tf_patch):
+        fscs = FSCSModel()
+        img = np.random.random((101, 256, 3))  # Prime and power of 2 size to test resizing.
+        channels = fscs.optimize_for_one_image(img)
+
+        self.assertEqual(len(channels), config.NUM_REGIONS)
+        reconstructed_img = np.sum(channels, axis=0)
+        np.testing.assert_array_equal(img.shape, reconstructed_img.shape)
+        np.testing.assert_array_compare(np.greater_equal, reconstructed_img, 0)
+        np.testing.assert_array_compare(np.less_equal, reconstructed_img, 1)
 
 
 if __name__ == '__main__':
