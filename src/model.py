@@ -48,7 +48,7 @@ class FSCSModel:
         Returns
         -------
         List[ndarray]
-            The image segmented into monochrome alpha channels.
+            The NUM_REGIONS monochrome alpha channels as a list of arrays of shape (height, width, 4).
         """
         original_shape = np.asarray(img.shape[:2])
         rounded_shape = np.ceil(original_shape / 2**config.NUM_DOWNSAMPLE_LAYERS) * 2**config.NUM_DOWNSAMPLE_LAYERS
@@ -58,9 +58,12 @@ class FSCSModel:
         output = self.model.predict(img[None, ...], batch_size=1)
 
         alpha = output[0, :, :, :config.NUM_REGIONS]
-        colour = np.mean(output[0, :, :, config.NUM_REGIONS:], axis=(0, 1), keepdims=True)
-        channels = [colour[..., 3*ch:3*ch+3] * alpha[..., ch:ch+1] for ch in range(config.NUM_REGIONS)]
-        return [resize(ch, original_shape) for ch in channels]
+        alpha = [resize(alpha[..., ch], original_shape) for ch in range(config.NUM_REGIONS)]
+
+        colour = np.mean(output[0, :, :, config.NUM_REGIONS:], axis=(0, 1))
+        colour = np.tile(colour, np.hstack([original_shape, 1]))
+
+        return [np.dstack([colour[..., 3*ch:3*ch+3], alpha[ch]]) for ch in range(config.NUM_REGIONS)]
 
     def save_weights(self, path):
         """Save the model weights to file.
