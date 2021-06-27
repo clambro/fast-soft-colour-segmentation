@@ -38,7 +38,7 @@ def main(img_path, out_path, scale):
     colour = np.asarray([ch[..., :3] for ch in channels])
     recon_img = np.sum(alpha[..., None] * colour, axis=0)
 
-    img_name = '.'.join('.'.split(os.path.basename(img_path)[:-1]))  # Get the image file name without the extension.
+    img_name = '.'.join(os.path.basename(img_path).split('.')[:-1])  # Get the image file name without the extension.
     recon_path = os.path.join(out_path, f'{img_name}_reconstructed.png')
     io.imsave(recon_path, np.rint(255 * recon_img).astype(np.uint8))
 

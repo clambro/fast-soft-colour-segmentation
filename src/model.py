@@ -203,29 +203,22 @@ class FSCSModel:
 
     def _compile_model(self):
         """Compiles the model with the appropriate losses."""
-        def reconstruction_loss(y_true, y_pred):
-            alpha = y_pred[..., :config.NUM_REGIONS]
-            colours = y_pred[..., config.NUM_REGIONS:]
-
-            # Each channel's colour is the average over the height and width of the network's output.
-            colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
+        def reconstruction_loss(y_true, alpha, colours):
             coloured_layers = [colours[..., 3*ch:3*ch+3] * alpha[..., ch:ch+1] for ch in range(config.NUM_REGIONS)]
 
             pred_img_batch = tf.reduce_sum(coloured_layers, axis=0)  # Sum the alpha channels.
             return tf.reduce_mean(tf.abs(y_true - pred_img_batch))
 
-        def region_loss(y_true, y_pred):
-            alpha = y_pred[..., :config.NUM_REGIONS]
-            colours = y_pred[..., config.NUM_REGIONS:]
-
-            colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
+        def region_loss(y_true, alpha, colours):
             loss = 0
             for ch in range(config.NUM_REGIONS):
-                loss += tf.reduce_mean((y_true - colours[..., 3*ch:3*ch+3]) ** 2 * alpha[..., ch:ch+1])
-            return loss * config.NUM_REGIONS  # Pixels get counted for each region, but
+                loss += tf.abs(y_true - colours[..., 3*ch:3*ch+3]) * alpha[..., ch:ch+1]
+            return tf.reduce_mean(loss)
 
         def total_loss(y_true, y_pred):
-            return reconstruction_loss(y_true, y_pred) + region_loss(y_true, y_pred)
+            alpha = y_pred[..., :config.NUM_REGIONS]
+            colours = y_pred[..., config.NUM_REGIONS:]
+            colours = tf.reduce_mean(colours, axis=(1, 2), keepdims=True)
+            return reconstruction_loss(y_true, alpha, colours) + region_loss(y_true, alpha, colours)
 
-        self.model.compile(loss=total_loss, optimizer=Adam(config.LEARNING_RATE),
-                           metrics=[reconstruction_loss, region_loss])
+        self.model.compile(loss=total_loss, optimizer=Adam(config.LEARNING_RATE))
