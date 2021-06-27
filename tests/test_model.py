@@ -31,10 +31,9 @@ class TestFSCSModel(unittest.TestCase):
         channels = fscs.optimize_for_one_image(img)
 
         self.assertEqual(len(channels), config.NUM_REGIONS)
-        reconstructed_img = np.sum(channels, axis=0)
-        np.testing.assert_array_equal(img.shape, reconstructed_img.shape)
-        np.testing.assert_array_compare(np.greater_equal, reconstructed_img, 0)
-        np.testing.assert_array_compare(np.less_equal, reconstructed_img, 1)
+        np.testing.assert_array_equal(img.shape[:2], channels[0].shape[:2])
+        np.testing.assert_array_compare(np.greater_equal, channels[0], 0)
+        np.testing.assert_array_compare(np.less_equal, channels[0], 1)
 
 
 if __name__ == '__main__':

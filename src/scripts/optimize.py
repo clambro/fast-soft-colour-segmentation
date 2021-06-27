@@ -10,6 +10,17 @@ from model import FSCSModel
 
 
 def main(img_path, out_path, scale):
+    """Main function to segment an image as an optimization problem.
+
+    Parameters
+    ----------
+    img_path : str
+        The path to the image to segment.
+    out_path : str
+        The folder to which the output will be saved
+    scale : float
+        The rescaling factor for the image between 0 and 1.
+    """
     if not os.path.isfile(img_path):
         raise FileNotFoundError(f'The file {img_path} was not found.')
     if not os.path.isdir(out_path):
@@ -27,14 +38,14 @@ def main(img_path, out_path, scale):
     colour = np.asarray([ch[..., :3] for ch in channels])
     recon_img = np.sum(alpha[..., None] * colour, axis=0)
 
-    img_name = '.'.join('.'.split(os.path.basename(img_path)[:-1]))
-    recon_path = os.path.join(out_path, f'reconstructed_{img_name}.png')
+    img_name = '.'.join('.'.split(os.path.basename(img_path)[:-1]))  # Get the image file name without the extension.
+    recon_path = os.path.join(out_path, f'{img_name}_reconstructed.png')
     io.imsave(recon_path, np.rint(255 * recon_img).astype(np.uint8))
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')  # Suppress low contrast image warnings.
         for i, ch in enumerate(channels):
-            ch_path = os.path.join(out_path, f'channel_{i}_{img_name}.png')
+            ch_path = os.path.join(out_path, f'{img_name}_channel_{i}.png')
             io.imsave(ch_path, np.rint(255 * ch).astype(np.uint8))
 
 
