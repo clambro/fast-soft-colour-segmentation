@@ -1,10 +1,11 @@
-import config
 import numpy as np
-from skimage.transform import resize
 import tensorflow as tf
+from skimage.transform import resize
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+
+import config
 
 
 class FSCSModel:

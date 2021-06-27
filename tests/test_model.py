@@ -1,9 +1,11 @@
-import config
-from mock import patch
-from model import FSCSModel
-import numpy as np
-from tempfile import NamedTemporaryFile
 import unittest
+from tempfile import NamedTemporaryFile
+
+import numpy as np
+from mock import patch
+
+import config
+from model import FSCSModel
 
 
 class TestFSCSModel(unittest.TestCase):
